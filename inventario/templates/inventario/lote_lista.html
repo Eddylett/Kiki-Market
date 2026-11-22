@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Lotes y vencimientos{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>⏳ Lotes y vencimientos</h1>
+        <p>Semáforo preventivo: verde, amarillo y rojo según la cercanía al vencimiento.</p>
+    </div>
+    {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+        <div class="acciones">
+            <a class="btn btn-suave" href="{% url 'merma_crear' %}">Registrar merma</a>
+            
+            <a class="btn" href="{% url 'recepcion_crear' %}">+ Registrar recepción</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Lote</th>
+                <th>Vence</th>
+                <th class="num">Días para vencer</th>
+                <th class="num">Cantidad</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for l in lotes %}
+            <tr>
+                <td>{{ l.producto }}</td>
+                <td>{{ l.numero_lote }}</td>
+                <td>{{ l.fecha_vencimiento|date:"d/m/Y" }}</td>
+                <td class="num">{{ l.dias_para_vencer }}</td>
+                <td class="num">{{ l.cantidad }}</td>
+                <td>
+                    <span class="estado estado-{{ l.estado_semaforo }}">
+                        {% if l.dias_para_vencer < 0 %}Vencido{% else %}{{ l.estado_semaforo|capfirst }}{% endif %}
+                    </span>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="6">Aún no hay lotes registrados.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

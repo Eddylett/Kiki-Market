@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Kiki Market{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'usuarios/kiki.css' %}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="{% url 'inicio' %}">
+                <!-- Carita de Kiki -->
+                {% include "kiki_gato.html" with tam=40 %}
+                <span>Kiki Market</span>
+            </a>
+
+            {% if user.is_authenticated %}
+            <nav class="nav">
+                <a href="{% url 'inicio' %}">Inicio</a>
+                <a href="{% url 'producto_lista' %}">Productos</a>
+                <a href="{% url 'lote_lista' %}">Lotes</a>
+                {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+                    <a href="{% url 'recepcion_crear' %}">Recepción</a>
+                {% endif %}
+                {% if user.rol == "cajera" or user.rol == "administrador" %}
+                    <a href="{% url 'pos' %}">Punto de venta</a>
+                {% endif %}
+                {% if user.rol == "administrador" %}
+                    <div class="desplegable">
+                        <button type="button" class="desplegable-boton">Reportes ▾</button>
+                        <div class="submenu">
+                            <a href="{% url 'reporte_cierre' %}">Ventas y ganancias</a>
+                            <a href="{% url 'merma_reporte' %}">Mermas</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </nav>
+            <div class="usuario">
+                <span>{{ user.nombre }} <span class="rol">{{ user.get_rol_display }}</span></span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-suave">Salir 🐾</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="contenedor">
+        {% for mensaje in messages %}
+            <div class="aviso {{ mensaje.tags }}">{{ mensaje }}</div>
+        {% endfor %}
+
+        {% block contenido %}{% endblock %}
+    </main>
+
+    <footer class="pie">
+        🐾 Kiki Market · Sistema de gestión · Medios de pago: efectivo, débito y crédito
+    </footer>
+</body>
+</html>

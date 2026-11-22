@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Reportes{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>📊 Reportes de cierre y gestión</h1>
+        <p>
+            Del {{ ini|date:"d/m/Y" }} al {{ fin|date:"d/m/Y" }}
+            · comparado con {{ ini_a|date:"d/m/Y" }} – {{ fin_a|date:"d/m/Y" }}
+        </p>
+    </div>
+    <div class="acciones">
+        <a class="btn {% if periodo != 'dia' %}btn-suave{% endif %}" href="?periodo=dia">Diario</a>
+        <a class="btn {% if periodo != 'semana' %}btn-suave{% endif %}" href="?periodo=semana">Semanal</a>
+        <a class="btn {% if periodo != 'mes' %}btn-suave{% endif %}" href="?periodo=mes">Mensual</a>
+    </div>
+</div>
+
+<div class="kpis">
+    <div class="panel kpi">
+        <span>Ventas netas</span>
+        <strong>${{ r.neto|floatformat:0 }}</strong>
+        {% if var_ventas is not None %}
+            <small class="estado {% if var_ventas >= 0 %}estado-verde{% else %}estado-rojo{% endif %}">
+                {% if var_ventas >= 0 %}▲{% else %}▼{% endif %} {{ var_ventas }}% vs. período anterior
+            </small>
+        {% else %}
+            <small>Sin ventas en el período anterior</small>
+        {% endif %}
+    </div>
+
+    <div class="panel kpi">
+        <span>Ganancia real</span>
+        <strong>${{ r.ganancia|floatformat:0 }}</strong>
+        {% if var_ganancia is not None %}
+            <small class="estado {% if var_ganancia >= 0 %}estado-verde{% else %}estado-rojo{% endif %}">
+                {% if var_ganancia >= 0 %}▲{% else %}▼{% endif %} {{ var_ganancia }}% vs. período anterior
+            </small>
+        {% else %}
+            <small>Sin datos del período anterior</small>
+        {% endif %}
+    </div>
+
+    <div class="panel kpi">
+        <span>Ventas realizadas</span>
+        <strong>{{ r.num_ventas }}</strong>
+        <small>Devoluciones: ${{ r.devuelto|floatformat:0 }}</small>
+    </div>
+
+    <div class="panel kpi">
+        <span>Mermas del período</span>
+        <strong>${{ r.mermas|floatformat:0 }}</strong>
+        <small>Pérdida por vencimientos y bajas</small>
+    </div>
+</div>
+
+<div class="dos-columnas">
+    <section>
+        <h2>Productos más vendidos</h2>
+        <div class="tabla-wrap">
+            <table>
+                <thead>
+                    <tr><th>Producto</th><th class="num">Unidades</th><th class="num">Vendido</th></tr>
+                </thead>
+                <tbody>
+                {% for p in r.top %}
+                    <tr>
+                        <td>{{ p.producto__nombre }}</td>
+                        <td class="num">{{ p.unidades }}</td>
+                        <td class="num">${{ p.total|floatformat:0 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="vacio" colspan="3">Sin ventas en este período.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Margen por categoría</h2>
+        <div class="tabla-wrap">
+            <table>
+                <thead>
+                    <tr><th>Categoría</th><th class="num">Vendido</th><th class="num">Margen</th><th class="num">%</th></tr>
+                </thead>
+                <tbody>
+                {% for c in r.categorias %}
+                    <tr>
+                        <td>{{ c.nombre }}</td>
+                        <td class="num">${{ c.ingreso|floatformat:0 }}</td>
+                        <td class="num">${{ c.margen|floatformat:0 }}</td>
+                        <td class="num">{{ c.porcentaje }}%</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="vacio" colspan="4">Sin ventas en este período.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<h2>Resumen gráfico</h2>
+<div class="graficos-grid">
+    <div class="panel">
+        <h3>Período actual vs. anterior</h3>
+        <div class="grafico"><canvas id="g-comparacion"></canvas></div>
+    </div>
+
+    <div class="panel">
+        <h3>Productos más vendidos</h3>
+        {% if r.top %}
+            <div class="grafico"><canvas id="g-top"></canvas></div>
+        {% else %}
+            <p class="vacio-grafico">Sin ventas en este período.</p>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <h3>Margen por categoría</h3>
+        {% if r.categorias %}
+            <div class="grafico"><canvas id="g-categorias"></canvas></div>
+        {% else %}
+            <p class="vacio-grafico">Sin ventas en este período.</p>
+        {% endif %}
+    </div>
+</div>
+
+{{ graficos|json_script:"datos-graficos" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+    const datos = JSON.parse(document.getElementById("datos-graficos").textContent);
+    const turquesa = "#26A69A", celeste = "#80DEEA", gris = "#cfd8dc";
+    const peso = (v) => "$" + Math.round(v).toLocaleString("es-CL");
+    const base = { responsive: true, maintainAspectRatio: false };
+
+    function crear(id, config) {
+        const lienzo = document.getElementById(id);
+        if (lienzo) new Chart(lienzo, config);
+    }
+
+    crear("g-comparacion", {
+        type: "bar",
+        data: {
+            labels: ["Ventas netas", "Ganancia real"],
+            datasets: [
+                { label: "Período anterior", data: datos.comparacion.anterior, backgroundColor: gris, borderRadius: 8 },
+                { label: "Período actual", data: datos.comparacion.actual, backgroundColor: turquesa, borderRadius: 8 }
+            ]
+        },
+        options: {
+            ...base,
+            plugins: { tooltip: { callbacks: {
+                label: (c) => c.dataset.label + ": " + peso(c.parsed.y)
+            } } }
+        }
+    });
+
+    crear("g-top", {
+        type: "bar",
+        data: {
+            labels: datos.top.etiquetas,
+            datasets: [{ label: "Unidades", data: datos.top.unidades, backgroundColor: celeste, borderRadius: 8 }]
+        },
+        options: {
+            ...base,
+            indexAxis: "y",
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: {
+                    label: (c) => c.parsed.x + " unidades",
+                    afterLabel: (c) => "Vendido: " + peso(datos.top.vendido[c.dataIndex])
+                } }
+            }
+        }
+    });
+
+    crear("g-categorias", {
+        type: "bar",
+        data: {
+            labels: datos.categorias.etiquetas,
+            datasets: [
+                { label: "Vendido", data: datos.categorias.vendido, backgroundColor: celeste, borderRadius: 8 },
+                { label: "Margen", data: datos.categorias.margen, backgroundColor: turquesa, borderRadius: 8 }
+            ]
+        },
+        options: {
+            ...base,
+            plugins: { tooltip: { callbacks: {
+                label: (c) => c.dataset.label + ": " + peso(c.parsed.y),
+                afterLabel: (c) => c.datasetIndex === 1
+                    ? datos.categorias.porcentaje[c.dataIndex] + "% de lo vendido"
+                    : ""
+            } } }
+        }
+    });
+})();
+</script>
+{% endblock %}

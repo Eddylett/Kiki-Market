@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Punto de venta{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🛒 Punto de venta</h1>
+        <p>Escanea o busca el producto, revisa el carro y cobra.</p>
+    </div>
+</div>
+
+<div class="pos-grid">
+    <section>
+        <div class="panel">
+            <form method="get" class="pos-buscador">
+                <input type="text" name="q" value="{{ q }}" placeholder="Código de barras o nombre" autofocus>
+                <button type="submit">Buscar</button>
+            </form>
+        </div>
+
+        {% if q %}
+        <div class="tabla-wrap">
+            <table>
+                <thead>
+                    <tr><th>Producto</th><th class="num">Precio</th><th class="num">Stock</th><th>Cantidad</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for p in resultados %}
+                    <tr>
+                        <td>{{ p.nombre }}</td>
+                        <td class="num">${{ p.precio_final|floatformat:0 }}</td>
+                        <td class="num">{{ p.stock_total }}</td>
+                        <td><input type="number" name="cantidad" value="1" min="1" class="input-cant" form="agregar-{{ p.pk }}"></td>
+                        <td>
+                            <form id="agregar-{{ p.pk }}" method="post" action="{% url 'pos_agregar' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="producto" value="{{ p.pk }}">
+                                <button type="submit" class="btn-chico">Agregar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="vacio" colspan="5">Sin resultados.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </section>
+
+    <section>
+        <div class="panel">
+            <h2 style="margin-top:0;">Carro</h2>
+            <div class="tabla-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Producto</th><th>Cant.</th><th class="num">Subtotal</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    {% for l in lineas %}
+                        <tr>
+                            <td>{{ l.producto.nombre }}<br><small>${{ l.precio|floatformat:0 }} c/u</small></td>
+                            <td>
+                                <form method="post" action="{% url 'pos_actualizar' l.producto.pk %}" class="acciones">
+                                    {% csrf_token %}
+                                    <input type="number" name="cantidad" value="{{ l.cantidad }}" min="0" class="input-cant">
+                                    <button type="submit" class="btn-suave btn-chico">OK</button>
+                                </form>
+                            </td>
+                            <td class="num">${{ l.subtotal|floatformat:0 }}</td>
+                            <td>
+                                <form method="post" action="{% url 'pos_quitar' l.producto.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-peligro btn-chico" title="Quitar">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td class="vacio" colspan="4">El carro está vacío.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="total-box">
+                <span>Total a cobrar</span>
+                <strong>${{ total|floatformat:0 }}</strong>
+            </div>
+
+            {% if lineas %}
+            <form method="post" action="{% url 'pos_confirmar' %}" class="pos-cobro">
+                {% csrf_token %}
+                <label for="metodo_pago"><strong>Medio de pago</strong></label>
+                <select name="metodo_pago" id="metodo_pago">
+                    {% for valor, nombre in metodos %}
+                        <option value="{{ valor }}">{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-cobrar">Confirmar venta</button>
+            </form>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

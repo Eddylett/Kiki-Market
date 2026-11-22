@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Recepción de mercadería{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🚚 Recepción de mercadería</h1>
+        <p>Registra el lote con su fecha de vencimiento; el stock se actualiza solo.</p>
+    </div>
+</div>
+
+<div class="panel panel-form">
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="botones">
+            <button type="submit">Registrar recepción</button>
+            <a class="btn btn-suave" href="{% url 'lote_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

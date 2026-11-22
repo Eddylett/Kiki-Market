@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Inicio{% endblock %}
+
+{% block contenido %}
+<section class="hero">
+    <h1>¡Hola, {{ user.nombre }}! 🐾</h1>
+    <div class="hero-gato">{% include "kiki_gato.html" with tam=84 %}</div>
+    <p>Tu minimarket de barrio, siempre ordenado. Entraste como {{ user.get_rol_display|lower }}.</p>
+</section>
+
+<section class="tarjetas">
+    <a class="tarjeta" href="{% url 'producto_lista' %}">
+        <div class="icono">📦</div>
+        <h3>Productos</h3>
+        <p>Catálogo, precios y stock.</p>
+    </a>
+    <a class="tarjeta" href="{% url 'lote_lista' %}">
+        <div class="icono">⏳</div>
+        <h3>Lotes y vencimientos</h3>
+        <p>Semáforo de fechas de vencimiento.</p>
+    </a>
+    {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+    <a class="tarjeta" href="{% url 'recepcion_crear' %}">
+        <div class="icono">🚚</div>
+        <h3>Recepción</h3>
+        <p>Registrar mercadería que llega.</p>
+    </a>
+    {% endif %}
+    {% if user.rol == "cajera" or user.rol == "administrador" %}
+    <a class="tarjeta" href="{% url 'pos' %}">
+        <div class="icono">🛒</div>
+        <h3>Punto de venta</h3>
+        <p>Cobrar y emitir comprobante.</p>
+    </a>
+    {% endif %}
+    {% if user.rol == "administrador" %}
+    <a class="tarjeta" href="/admin/">
+        <div class="icono">⚙️</div>
+        <h3>Administración</h3>
+        <p>Categorías, proveedores y datos.</p>
+    </a>
+    {% endif %}
+</section>
+
+<section class="rincon">
+    <h2>El Rincón de Kiki 🐈‍⬛</h2>
+    <p>Consejo del día: empieza revisando los lotes en rojo en "Lotes y vencimientos". ¡A Kiki no le gusta desperdiciar nada!</p>
+</section>
+{% endblock %}

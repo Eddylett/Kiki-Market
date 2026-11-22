@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Reporte de mermas{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>📉 Reporte de mermas</h1>
+        <p>Productos vencidos o dados de baja, con su costo.</p>
+    </div>
+</div>
+
+<a class="btn" href="{% url 'merma_crear' %}">+ Registrar merma</a>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Lote</th>
+                <th class="num">Cantidad</th>
+                <th>Motivo</th>
+                <th class="num">Costo</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in mermas %}
+            <tr>
+                <td>{{ m.fecha|date:"d/m/Y" }}</td>
+                <td>{{ m.lote.producto }}</td>
+                <td>{{ m.lote.numero_lote }}</td>
+                <td class="num">{{ m.cantidad }}</td>
+                <td>{{ m.get_motivo_display }}</td>
+                <td class="num">${{ m.costo_total|floatformat:0 }}</td>
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="6">Aún no hay mermas registradas. ¡Buen trabajo! 🐾</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="total-box">
+    <span>Total de pérdidas</span>
+    <strong>${{ total|floatformat:0 }}</strong>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Eliminar producto{% endblock %}
+
+{% block contenido %}
+<div class="panel centrado">
+    <h1>Eliminar producto</h1>
+    <p>¿Seguro que quieres eliminar <strong>{{ producto.nombre }}</strong>?</p>
+
+    <form method="post" class="acciones" style="justify-content:center;">
+        {% csrf_token %}
+        <button type="submit" class="btn-peligro">Sí, eliminar</button>
+        <a class="btn btn-suave" href="{% url 'producto_lista' %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

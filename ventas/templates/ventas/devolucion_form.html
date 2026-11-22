@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Devolución {{ venta.nro_comprobante }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>↩️ Registrar devolución</h1>
+        <p>Comprobante {{ venta.nro_comprobante }} · {{ venta.fecha_hora|date:"d/m/Y H:i" }}</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="num">Vendidas</th>
+                    <th class="num">Ya devueltas</th>
+                    <th>A devolver</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in filas %}
+                <tr>
+                    <td>{{ f.detalle.producto.nombre }}</td>
+                    <td class="num">{{ f.detalle.cantidad }}</td>
+                    <td class="num">{{ f.devuelto }}</td>
+                    <td>
+                        <input type="number" name="cant_{{ f.detalle.pk }}" value="0"
+                               min="0" max="{{ f.disponible }}" class="input-cant"
+                               {% if f.disponible == 0 %}disabled{% endif %}>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="panel panel-form" style="margin-top:1rem;">
+        <label for="motivo"><strong>Motivo</strong></label>
+        <input type="text" name="motivo" id="motivo" maxlength="100"
+               placeholder="Ej: producto en mal estado" required>
+        <div class="botones">
+            <button type="submit">Confirmar devolución</button>
+            <a class="btn btn-suave" href="{% url 'comprobante' venta.pk %}">Cancelar</a>
+        </div>
+    </div>
+</form>
+{% endblock %}

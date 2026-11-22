@@ -88,6 +88,14 @@ class Lote(models.Model):
     def dias_para_vencer(self):
         return (self.fecha_vencimiento - timezone.localdate()).days
 
+    def estado_semaforo(self):
+        dias = self.dias_para_vencer()
+        if dias <= 3:
+            return "rojo"
+        if dias <= self.producto.categoria.dias_alerta:
+            return "amarillo"
+        return "verde"
+
 
 class Merma(models.Model):
     id_merma = models.AutoField(primary_key=True)

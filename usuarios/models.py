@@ -41,6 +41,17 @@ class Usuario(AbstractBaseUser):
     REQUIRED_FIELDS = ["nombre"]
     objects = UsuarioManager()
 
+    
+    @property
+    def is_staff(self):
+        return self.rol == Rol.ADMINISTRADOR
+
+    def has_perm(self, perm, obj=None):
+        return self.rol == Rol.ADMINISTRADOR
+
+    def has_module_perms(self, app_label):
+        return self.rol == Rol.ADMINISTRADOR
+
     class Meta:
         db_table = "usuarios"
 

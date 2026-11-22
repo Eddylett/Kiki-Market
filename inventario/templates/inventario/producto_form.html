@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · {{ titulo }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <h1>📦 {{ titulo }}</h1>
+</div>
+
+<div class="panel panel-form">
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="botones">
+            <button type="submit">Guardar</button>
+            <a class="btn btn-suave" href="{% url 'producto_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

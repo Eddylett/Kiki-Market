@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Productos{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>📦 Productos</h1>
+        <p>Catálogo, precios y stock de Kiki Market.</p>
+    </div>
+    {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+        <a class="btn" href="{% url 'producto_crear' %}">+ Nuevo producto</a>
+    {% endif %}
+</div>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Código</th>
+                <th>Categoría</th>
+                <th class="num">Precio final</th>
+                <th class="num">Stock total</th>
+                <th>Estado</th>
+                {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+                    <th>Acciones</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in productos %}
+            <tr>
+                <td>{{ p.nombre }}</td>
+                <td>{{ p.codigo_barra|default:"—" }}</td>
+                <td>{{ p.categoria }}</td>
+                <td class="num">${{ p.precio_final|floatformat:0 }}</td>
+                <td class="num">{{ p.stock_total }}</td>
+                <td>
+                    {% if p.esta_en_stock_critico %}
+                        <span class="estado estado-rojo">Stock crítico</span>
+                    {% else %}
+                        <span class="estado estado-verde">OK</span>
+                    {% endif %}
+                </td>
+                {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+                <td>
+                    <div class="acciones">
+                        <a class="btn btn-suave btn-chico" href="{% url 'producto_editar' p.pk %}">Editar</a>
+                        <a class="btn btn-peligro btn-chico" href="{% url 'producto_eliminar' p.pk %}">Eliminar</a>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="7">Aún no hay productos. ¡Kiki espera el primero! 🐾</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

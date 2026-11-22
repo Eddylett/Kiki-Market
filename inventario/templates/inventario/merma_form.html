@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Registrar merma{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>📉 Registrar merma</h1>
+        <p>Productos vencidos o dados de baja. El costo se calcula solo.</p>
+    </div>
+</div>
+
+<div class="panel panel-form">
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="botones">
+            <button type="submit">Registrar merma</button>
+            <a class="btn btn-suave" href="{% url 'lote_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

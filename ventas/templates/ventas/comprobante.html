@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Comprobante {{ venta.nro_comprobante }}{% endblock %}
+
+{% block contenido %}
+<div class="panel comprobante">
+    <h1> Comprobante {{ venta.nro_comprobante }}</h1>
+    <p class="meta">
+        Fecha: {{ venta.fecha_hora|date:"d/m/Y H:i" }}<br>
+        Atendió: {{ venta.usuario.nombre }}<br>
+        Medio de pago: {{ venta.get_metodo_pago_display }}
+    </p>
+
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr><th>Producto</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+            </thead>
+            <tbody>
+            {% for d in detalles %}
+                <tr>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td class="num">{{ d.cantidad }}</td>
+                    <td class="num">${{ d.precio_unitario|floatformat:0 }}</td>
+                    <td class="num">${{ d.subtotal|floatformat:0 }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="total-box">
+        <span>Total</span>
+        <strong>${{ venta.total_venta|floatformat:0 }}</strong>
+    </div>
+
+        {% if devoluciones %}
+    <h2>Devoluciones</h2>
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr><th>Fecha</th><th>Producto</th><th class="num">Cant.</th><th>Motivo</th><th class="num">Monto</th></tr>
+            </thead>
+            <tbody>
+            {% for dv in devoluciones %}
+                <tr>
+                    <td>{{ dv.fecha_hora|date:"d/m/Y H:i" }}</td>
+                    <td>{{ dv.detalle_venta.producto.nombre }}</td>
+                    <td class="num">{{ dv.cantidad }}</td>
+                    <td>{{ dv.motivo }}</td>
+                    <td class="num">${{ dv.monto|floatformat:0 }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="acciones no-imprimir">
+        <a class="btn" href="{% url 'pos' %}">Nueva venta</a>
+        <a class="btn btn-suave" href="{% url 'devolucion_crear' venta.pk %}">Registrar devolución</a>
+        <button type="button" class="btn-suave" onclick="window.print()">Imprimir</button>
+    </div>
+</div>
+{% endblock %}

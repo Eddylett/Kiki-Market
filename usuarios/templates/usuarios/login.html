@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Ingreso{% endblock %}
+
+{% block contenido %}
+<div class="panel centrado">
+    <div class="gato-grande">{% include "kiki_gato.html" with tam=96 %}</div>
+    <h1>¡Hola! 🐾</h1>
+    <p>Ingresa para entrar a Kiki Market.</p>
+
+    {% if form.errors %}
+        <div class="aviso error">Usuario o contraseña incorrectos.</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Ingresar</button>
+    </form>
+</div>
+{% endblock %}
