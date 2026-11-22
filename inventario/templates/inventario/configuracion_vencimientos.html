@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Configuración de alertas{% endblock %}
+
+{% block contenido %}
+<div class="formulario-pagina">
+    <header class="cabecera-pagina formulario-cabecera">
+        <div>
+            <h1>⚙️ Configuración de alertas de vencimiento</h1>
+            <p>Define los plazos. Kiki Market calculará automáticamente el estado de cada lote.</p>
+        </div>
+    </header>
+
+    <section class="panel panel-form formulario-panel configuracion-alertas-panel">
+        <div class="formulario-intro">
+            <span class="formulario-icono">⏳</span>
+            <div>
+                <h2>Umbrales preventivos</h2>
+                <p>Estos valores se aplican globalmente según la clasificación de cada categoría.</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+
+            <div class="configuracion-alertas-grupo">
+                <h3>Productos perecibles</h3>
+                <p>Se muestran avisos progresivos a medida que se acerca la fecha de vencimiento.</p>
+                <div class="campos-formulario">
+                    {% for field in form %}
+                        {% if field.name != "despensa_aviso" %}
+                            <div class="campo-formulario {% if field.errors %}campo-con-error{% endif %}">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.help_text %}<small class="ayuda-campo">{{ field.help_text }}</small>{% endif %}
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="configuracion-alertas-grupo">
+                <h3>Productos de despensa</h3>
+                <p>Se activa un aviso preventivo con la anticipación definida para esta clasificación.</p>
+                <div class="campos-formulario">
+                    <div class="campo-formulario {% if form.despensa_aviso.errors %}campo-con-error{% endif %}">
+                        {{ form.despensa_aviso.label_tag }}
+                        {{ form.despensa_aviso }}
+                        {% if form.despensa_aviso.help_text %}<small class="ayuda-campo">{{ form.despensa_aviso.help_text }}</small>{% endif %}
+                        {{ form.despensa_aviso.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="configuracion-alertas-nota">
+                <strong>Funcionamiento automático</strong>
+                <p>Los avisos se calculan usando la fecha actual y la fecha de cada lote. El semáforo se actualiza al consultar Lotes y vencimientos, sin configurar cada producto individualmente.</p>
+            </div>
+
+            <div class="botones formulario-botones">
+                <button type="submit">Guardar configuración</button>
+                <a class="btn btn-suave" href="{% url 'lote_lista' %}">Volver a lotes</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

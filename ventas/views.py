@@ -53,13 +53,20 @@ def _lineas(request):
     return lineas, total
 
 
+def _por_codigo(texto):
+    if not texto.isdigit():
+        return None
+    candidatos = {texto, texto.lstrip("0"), texto.zfill(12), texto.zfill(13)}
+    return Producto.objects.filter(codigo_barra__in=candidatos).first()
+
+
 @rol_requerido(*CAJA)
 def pos(request):
     q = request.GET.get("q", "").strip()
     cant = _entero_positivo(request.GET.get("cant"))
     resultados = []
     if q:
-        exacto = Producto.objects.filter(codigo_barra=q).first()
+        exacto = _por_codigo(q)
         if exacto:
             _agregar(request, exacto, cant)
             return redirect("pos")
@@ -67,6 +74,7 @@ def pos(request):
     lineas, total = _lineas(request)
     return render(request, "ventas/pos.html", {
         "q": q,
+        "cant": cant,
         "resultados": resultados,
         "lineas": lineas,
         "total": total,

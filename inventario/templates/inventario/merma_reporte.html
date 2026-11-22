@@ -3,14 +3,13 @@
 {% block titulo %}Kiki Market · Reporte de mermas{% endblock %}
 
 {% block contenido %}
-<div class="cabecera-pagina">
+<div class="cabecera-pagina merma-reporte-cabecera">
     <div>
         <h1>📉 Reporte de mermas</h1>
         <p>Productos vencidos o dados de baja, con su costo.</p>
     </div>
+    <a class="btn merma-reporte-boton" href="{% url 'merma_crear' %}">+ Registrar merma</a>
 </div>
-
-<a class="btn" href="{% url 'merma_crear' %}">+ Registrar merma</a>
 
 <div class="tabla-wrap">
     <table>

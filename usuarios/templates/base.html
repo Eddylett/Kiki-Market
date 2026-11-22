@@ -18,21 +18,28 @@
 
             {% if user.is_authenticated %}
             <nav class="nav">
-                <a href="{% url 'inicio' %}">Inicio</a>
-                <a href="{% url 'producto_lista' %}">Productos</a>
-                <a href="{% url 'lote_lista' %}">Lotes</a>
+                <a href="{% url 'inicio' %}" {% if request.resolver_match.url_name == 'inicio' %}class="activo"{% endif %}>Inicio</a>
+                <a href="{% url 'producto_lista' %}" {% if request.resolver_match.url_name == 'producto_lista' %}class="activo"{% endif %}>Productos</a>
                 {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
-                    <a href="{% url 'recepcion_crear' %}">Recepción</a>
+                    <a href="{% url 'categoria_lista' %}" {% if request.resolver_match.url_name == 'categoria_lista' or request.resolver_match.url_name == 'categoria_crear' or request.resolver_match.url_name == 'categoria_editar' or request.resolver_match.url_name == 'categoria_eliminar' %}class="activo"{% endif %}>Categorías</a>
+                {% endif %}
+                <a href="{% url 'lote_lista' %}" {% if request.resolver_match.url_name == 'lote_lista' %}class="activo"{% endif %}>Lotes</a>
+                {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+                    <a href="{% url 'recepcion_crear' %}" {% if request.resolver_match.url_name == 'recepcion_crear' %}class="activo"{% endif %}>Recepción</a>
                 {% endif %}
                 {% if user.rol == "cajera" or user.rol == "administrador" %}
-                    <a href="{% url 'pos' %}">Punto de venta</a>
+                    <a href="{% url 'pos' %}" {% if request.resolver_match.url_name == 'pos' %}class="activo"{% endif %}>Punto de venta</a>
                 {% endif %}
                 {% if user.rol == "administrador" %}
+                    <a href="{% url 'configurar_vencimientos' %}" {% if request.resolver_match.url_name == 'configurar_vencimientos' %}class="activo"{% endif %}>Alertas</a>
                     <div class="desplegable">
-                        <button type="button" class="desplegable-boton">Reportes ▾</button>
+                        <button type="button" class="desplegable-boton">Gestión ▾</button>
                         <div class="submenu">
+                            <a href="{% url 'proveedor_lista' %}">Proveedores</a>
                             <a href="{% url 'reporte_cierre' %}">Ventas y ganancias</a>
                             <a href="{% url 'merma_reporte' %}">Mermas</a>
+                            <a href="{% url 'reposicion' %}">Reposición</a>
+                            <a href="{% url 'orden_lista' %}">Órdenes de compra</a>
                         </div>
                     </div>
                 {% endif %}

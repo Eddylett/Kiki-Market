@@ -3,21 +3,30 @@
 {% block titulo %}Kiki Market · Recepción de mercadería{% endblock %}
 
 {% block contenido %}
-<div class="cabecera-pagina">
-    <div>
-        <h1>🚚 Recepción de mercadería</h1>
-        <p>Registra el lote con su fecha de vencimiento; el stock se actualiza solo.</p>
-    </div>
-</div>
-
-<div class="panel panel-form">
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <div class="botones">
-            <button type="submit">Registrar recepción</button>
-            <a class="btn btn-suave" href="{% url 'lote_lista' %}">Cancelar</a>
+<div class="recepcion-pagina">
+    <div class="cabecera-pagina recepcion-cabecera">
+        <div>
+            <h1>🚚 Recepción de mercadería</h1>
+            <p>Registra el lote y su fecha de vencimiento. El stock se actualizará automáticamente.</p>
         </div>
-    </form>
+    </div>
+
+    <section class="panel panel-form recepcion-panel">
+        <div class="recepcion-intro">
+            <span class="recepcion-icono">📦</span>
+            <div>
+                <h2>Datos de la recepción</h2>
+                <p>Completa la información de los productos que ingresan al minimarket.</p>
+            </div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="botones">
+                <button type="submit">Registrar recepción</button>
+                <a class="btn btn-suave" href="{% url 'lote_lista' %}">Cancelar</a>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}

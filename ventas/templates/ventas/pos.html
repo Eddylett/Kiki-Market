@@ -3,104 +3,139 @@
 {% block titulo %}Kiki Market · Punto de venta{% endblock %}
 
 {% block contenido %}
-<div class="cabecera-pagina">
+<div class="cabecera-pagina pos-cabecera">
     <div>
         <h1>🛒 Punto de venta</h1>
-        <p>Escanea o busca el producto, revisa el carro y cobra.</p>
+        <p>Busca los productos, agrégalos al carrito y confirma la venta.</p>
+    </div>
+
+    <div class="pos-esquina">
+        <form method="get" action="{% url 'pos' %}" class="pos-buscador" role="search">
+            <label class="solo-lector" for="buscar-pos">Buscar producto o código de barras</label>
+            <input id="buscar-pos" type="text" name="q" value="{{ q }}"
+                   placeholder="Nombre o código de barras…" autocomplete="off" autofocus>
+            <label class="solo-lector" for="cantidad-pos">Cantidad</label>
+            <input id="cantidad-pos" class="pos-cant-busqueda" type="number" name="cant"
+                   value="{{ cant|default:1 }}" min="1" step="1" aria-label="Cantidad">
+            <button type="submit">Buscar</button>
+        </form>
+
+        {% if q %}
+        <div class="pos-resultados" aria-live="polite">
+            <div class="pos-resultados-cab">
+                <strong>Resultados de búsqueda</strong>
+                <span>{{ resultados|length }} encontrados</span>
+            </div>
+            <div class="pos-resultados-lista">
+                {% for producto in resultados %}
+                <div class="pos-resultado-item">
+                    <div class="pos-resultado-info">
+                        <strong>{{ producto.nombre }}</strong>
+                        <small>{{ producto.categoria }} · Código: {{ producto.codigo_barra|default:"Sin código" }}</small>
+                        <span>${{ producto.precio_final|floatformat:0 }} · Stock: {{ producto.stock_total }}</span>
+                    </div>
+                    <form method="post" action="{% url 'pos_agregar' %}" class="pos-resultado-accion">
+                        {% csrf_token %}
+                        <input type="hidden" name="producto" value="{{ producto.pk }}">
+                        <input class="input-cant" type="number" name="cantidad"
+                               value="{{ cant|default:1 }}" min="1"
+                               max="{{ producto.stock_total }}" aria-label="Cantidad de {{ producto.nombre }}"
+                               {% if producto.stock_total <= 0 %}disabled{% endif %}>
+                        <button type="submit" class="btn-chico"
+                                {% if producto.stock_total <= 0 %}disabled{% endif %}>
+                            Agregar
+                        </button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="pos-sin-resultados">No encontramos productos con “{{ q }}”. Revisa el nombre o el código.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<div class="pos-grid">
-    <section>
-        <div class="panel">
-            <form method="get" class="pos-buscador">
-                <input type="text" name="q" value="{{ q }}" placeholder="Código de barras o nombre" autofocus>
-                <button type="submit">Buscar</button>
-            </form>
+<div class="pos-main">
+    <section class="panel pos-carro" aria-labelledby="titulo-carrito">
+        <div class="pos-carro-cab">
+            <h2 id="titulo-carrito">Tu carrito</h2>
+            <span class="cuenta">{{ lineas|length }} producto{{ lineas|length|pluralize:"s" }}</span>
         </div>
 
-        {% if q %}
-        <div class="tabla-wrap">
+        {% if lineas %}
+        <div class="pos-carro-scroll">
             <table>
                 <thead>
-                    <tr><th>Producto</th><th class="num">Precio</th><th class="num">Stock</th><th>Cantidad</th><th></th></tr>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="num">Precio</th>
+                        <th class="num">Cantidad</th>
+                        <th class="num">Subtotal</th>
+                        <th>Acciones</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {% for p in resultados %}
+                    {% for linea in lineas %}
                     <tr>
-                        <td>{{ p.nombre }}</td>
-                        <td class="num">${{ p.precio_final|floatformat:0 }}</td>
-                        <td class="num">{{ p.stock_total }}</td>
-                        <td><input type="number" name="cantidad" value="1" min="1" class="input-cant" form="agregar-{{ p.pk }}"></td>
                         <td>
-                            <form id="agregar-{{ p.pk }}" method="post" action="{% url 'pos_agregar' %}">
+                            <span class="pos-nombre">{{ linea.producto.nombre }}</span>
+                            <small class="pos-codigo">{{ linea.producto.codigo_barra|default:"Producto sin código" }}</small>
+                        </td>
+                        <td class="num">${{ linea.precio|floatformat:0 }}</td>
+                        <td class="num">
+                            <form method="post" action="{% url 'pos_actualizar' linea.producto.pk %}" class="pos-cantidad-form">
                                 {% csrf_token %}
-                                <input type="hidden" name="producto" value="{{ p.pk }}">
-                                <button type="submit" class="btn-chico">Agregar</button>
+                                <label class="solo-lector" for="cantidad-{{ linea.producto.pk }}">Cantidad de {{ linea.producto.nombre }}</label>
+                                <input id="cantidad-{{ linea.producto.pk }}" class="input-cant" type="number"
+                                       name="cantidad" value="{{ linea.cantidad }}" min="0"
+                                       max="{{ linea.producto.stock_total }}">
+                                <button type="submit" class="btn btn-suave btn-chico">Actualizar</button>
+                            </form>
+                        </td>
+                        <td class="num pos-subtotal">${{ linea.subtotal|floatformat:0 }}</td>
+                        <td>
+                            <form method="post" action="{% url 'pos_quitar' linea.producto.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-peligro btn-chico">Quitar</button>
                             </form>
                         </td>
                     </tr>
-                {% empty %}
-                    <tr><td class="vacio" colspan="5">Sin resultados.</td></tr>
-                {% endfor %}
+                    {% endfor %}
                 </tbody>
             </table>
+        </div>
+        {% else %}
+        <div class="pos-vacio">
+            <span class="pos-vacio-icono">🧺</span>
+            <h3>Tu carrito está vacío</h3>
+            <p>Busca un producto por su nombre o escanea su código de barras para comenzar una venta.</p>
         </div>
         {% endif %}
     </section>
 
-    <section>
-        <div class="panel">
-            <h2 style="margin-top:0;">Carro</h2>
-            <div class="tabla-wrap">
-                <table>
-                    <thead>
-                        <tr><th>Producto</th><th>Cant.</th><th class="num">Subtotal</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                    {% for l in lineas %}
-                        <tr>
-                            <td>{{ l.producto.nombre }}<br><small>${{ l.precio|floatformat:0 }} c/u</small></td>
-                            <td>
-                                <form method="post" action="{% url 'pos_actualizar' l.producto.pk %}" class="acciones">
-                                    {% csrf_token %}
-                                    <input type="number" name="cantidad" value="{{ l.cantidad }}" min="0" class="input-cant">
-                                    <button type="submit" class="btn-suave btn-chico">OK</button>
-                                </form>
-                            </td>
-                            <td class="num">${{ l.subtotal|floatformat:0 }}</td>
-                            <td>
-                                <form method="post" action="{% url 'pos_quitar' l.producto.pk %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-peligro btn-chico" title="Quitar">✕</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr><td class="vacio" colspan="4">El carro está vacío.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
+    <aside class="pos-lateral">
+        <section class="panel">
+            <h2>Resumen de venta</h2>
             <div class="total-box">
-                <span>Total a cobrar</span>
+                <span>Total a pagar</span>
                 <strong>${{ total|floatformat:0 }}</strong>
             </div>
 
-            {% if lineas %}
             <form method="post" action="{% url 'pos_confirmar' %}" class="pos-cobro">
                 {% csrf_token %}
-                <label for="metodo_pago"><strong>Medio de pago</strong></label>
-                <select name="metodo_pago" id="metodo_pago">
-                    {% for valor, nombre in metodos %}
-                        <option value="{{ valor }}">{{ nombre }}</option>
+                <label for="metodo-pago"><strong>Medio de pago</strong></label>
+                <select id="metodo-pago" name="metodo_pago" required>
+                    {% for valor, etiqueta in metodos %}
+                    <option value="{{ valor }}" {% if valor == "efectivo" %}selected{% endif %}>{{ etiqueta }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="btn-cobrar">Confirmar venta</button>
+                <button type="submit" class="btn-cobrar" {% if not lineas %}disabled{% endif %}>
+                    Confirmar y cobrar
+                </button>
             </form>
-            {% endif %}
-        </div>
-    </section>
+        </section>
+        <p class="ayuda-pos">Verifica las cantidades y el medio de pago antes de confirmar.</p>
+    </aside>
 </div>
 {% endblock %}

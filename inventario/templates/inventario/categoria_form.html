@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · {{ titulo }}{% endblock %}
+
+{% block contenido %}
+<div class="formulario-pagina">
+    <header class="cabecera-pagina formulario-cabecera">
+        <div>
+            <h1>🏷️ {{ titulo }}</h1>
+            <p>Define el nombre y el tipo de producto que agrupará esta categoría.</p>
+        </div>
+    </header>
+
+    <section class="panel panel-form formulario-panel">
+        <div class="formulario-intro">
+            <span class="formulario-icono">🗂️</span>
+            <div>
+                <h2>Datos de la categoría</h2>
+                <p>Los plazos de aviso se administran por separado desde la configuración de alertas.</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="campos-formulario">
+                {% for field in form %}
+                    <div class="campo-formulario {% if field.errors %}campo-con-error{% endif %}">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}<small class="ayuda-campo">{{ field.help_text }}</small>{% endif %}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="botones formulario-botones">
+                <button type="submit">Guardar categoría</button>
+                <a class="btn btn-suave" href="{% url 'categoria_lista' %}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

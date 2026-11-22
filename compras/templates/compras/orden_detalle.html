@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Orden #{{ orden.pk }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🧾 Orden de compra #{{ orden.pk }}</h1>
+        <p>
+            {{ orden.proveedor }} · {{ orden.proveedor.correo }}
+            · Entrega: {{ orden.proveedor.dia_entrega|default:"sin definir" }}
+        </p>
+    </div>
+    <span class="estado estado-{% if orden.estado == 'pendiente' %}amarillo{% elif orden.estado == 'rechazada' %}rojo{% else %}verde{% endif %}">
+        {{ orden.get_estado_display }}
+    </span>
+</div>
+
+{% if orden.usuario %}
+<p>Aprobada por <strong>{{ orden.usuario.nombre }}</strong> el {{ orden.fecha_aprobacion|date:"d/m/Y H:i" }}.</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="num">Stock actual</th>
+                    <th class="num">Sugerido</th>
+                    <th class="num">Costo unit.</th>
+                    <th>Cantidad a pedir</th>
+                    <th class="num">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for d in detalles %}
+                <tr>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td class="num">{{ d.producto.stock_total }}</td>
+                    <td class="num">{{ d.cantidad_sugerida }}</td>
+                    <td class="num">${{ d.costo_unitario|floatformat:0 }}</td>
+                    <td>
+                        {% if editable %}
+                            <input type="number" name="cant_{{ d.pk }}" min="0" class="input-cant"
+                                   value="{{ d.cantidad_aprobada|default_if_none:d.cantidad_sugerida }}">
+                        {% else %}
+                            {{ d.cantidad_aprobada|default_if_none:"—" }}
+                        {% endif %}
+                    </td>
+                    <td class="num">${{ d.subtotal|floatformat:0 }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="total-box">
+        <span>{% if editable %}Total estimado (se recalcula al aprobar){% else %}Total{% endif %}</span>
+        <strong>${{ orden.total_estimado|floatformat:0 }}</strong>
+    </div>
+
+    <div class="acciones">
+        {% if editable %}
+            <button type="submit" name="accion" value="aprobar">Aprobar y enviar al proveedor</button>
+            <button type="submit" name="accion" value="rechazar" class="btn-peligro"
+                    onclick="return confirm('¿Rechazar esta orden? No se enviará nada al proveedor.')">Rechazar</button>
+        {% endif %}
+        <a class="btn btn-suave" href="{% url 'orden_lista' %}">Volver</a>
+    </div>
+</form>
+{% endblock %}

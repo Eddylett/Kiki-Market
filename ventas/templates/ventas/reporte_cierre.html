@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 
-{% block titulo %}Kiki Market · Reportes{% endblock %}
+{% block titulo %}Kiki Market · Ventas y ganancias{% endblock %}
 
 {% block contenido %}
 <div class="cabecera-pagina">
     <div>
-        <h1>📊 Reportes de cierre y gestión</h1>
-        <p>
-            Del {{ ini|date:"d/m/Y" }} al {{ fin|date:"d/m/Y" }}
-            · comparado con {{ ini_a|date:"d/m/Y" }} – {{ fin_a|date:"d/m/Y" }}
-        </p>
+        <h1>📊 Ventas y ganancias</h1>
+        <p>Del {{ ini|date:"d/m/Y" }} al {{ fin|date:"d/m/Y" }}
+            · comparado con {{ ini_a|date:"d/m/Y" }} – {{ fin_a|date:"d/m/Y" }}</p>
     </div>
-    <div class="acciones">
+    <div class="acciones filtros-periodo">
         <a class="btn {% if periodo != 'dia' %}btn-suave{% endif %}" href="?periodo=dia">Diario</a>
         <a class="btn {% if periodo != 'semana' %}btn-suave{% endif %}" href="?periodo=semana">Semanal</a>
         <a class="btn {% if periodo != 'mes' %}btn-suave{% endif %}" href="?periodo=mes">Mensual</a>
@@ -103,15 +101,22 @@
     </section>
 </div>
 
-<h2>Resumen gráfico</h2>
-<div class="graficos-grid">
-    <div class="panel">
-        <h3>Período actual vs. anterior</h3>
+<div class="cabecera-graficos">
+    <div>
+        <h2>Gráficos del período</h2>
+        <p>Visualiza rápidamente cómo se comportaron las ventas y cuáles categorías aportaron más.</p>
+    </div>
+</div>
+<div class="graficos-grid reportes-graficos">
+    <div class="panel grafico-panel">
+        <h3>Ventas y ganancias: período actual vs. anterior</h3>
+        <p class="grafico-descripcion">Compara los montos de ambos períodos en pesos.</p>
         <div class="grafico"><canvas id="g-comparacion"></canvas></div>
     </div>
 
-    <div class="panel">
+    <div class="panel grafico-panel">
         <h3>Productos más vendidos</h3>
+        <p class="grafico-descripcion">Las barras más largas representan más unidades vendidas.</p>
         {% if r.top %}
             <div class="grafico"><canvas id="g-top"></canvas></div>
         {% else %}
@@ -119,10 +124,11 @@
         {% endif %}
     </div>
 
-    <div class="panel">
-        <h3>Margen por categoría</h3>
+    <div class="panel grafico-panel grafico-circular-panel">
+        <h3>Distribución de ventas por categoría</h3>
+        <p class="grafico-descripcion">Cada porción representa la participación de una categoría en las ventas.</p>
         {% if r.categorias %}
-            <div class="grafico"><canvas id="g-categorias"></canvas></div>
+            <div class="grafico grafico-circular"><canvas id="g-categorias"></canvas></div>
         {% else %}
             <p class="vacio-grafico">Sin ventas en este período.</p>
         {% endif %}
@@ -134,7 +140,10 @@
 <script>
 (function () {
     const datos = JSON.parse(document.getElementById("datos-graficos").textContent);
-    const turquesa = "#26A69A", celeste = "#80DEEA", gris = "#cfd8dc";
+    const turquesa = "#26A69A";
+    const celeste = "#80DEEA";
+    const gris = "#cbd5d5";
+    const paleta = ["#26A69A", "#80DEEA", "#F6C85F", "#8E7CC3", "#FF9671", "#78909C", "#A3C97A", "#4DB6AC", "#F48FB1", "#90A4AE"];
     const peso = (v) => "$" + Math.round(v).toLocaleString("es-CL");
     const base = { responsive: true, maintainAspectRatio: false };
 
@@ -148,15 +157,21 @@
         data: {
             labels: ["Ventas netas", "Ganancia real"],
             datasets: [
-                { label: "Período anterior", data: datos.comparacion.anterior, backgroundColor: gris, borderRadius: 8 },
-                { label: "Período actual", data: datos.comparacion.actual, backgroundColor: turquesa, borderRadius: 8 }
+                { label: "Período anterior", data: datos.comparacion.anterior, backgroundColor: gris, borderRadius: 7 },
+                { label: "Período actual", data: datos.comparacion.actual, backgroundColor: turquesa, borderRadius: 7 }
             ]
         },
         options: {
             ...base,
-            plugins: { tooltip: { callbacks: {
-                label: (c) => c.dataset.label + ": " + peso(c.parsed.y)
-            } } }
+            indexAxis: "y",
+            scales: {
+                x: { beginAtZero: true, ticks: { callback: (v) => peso(v) }, grid: { color: "#edf2f2" } },
+                y: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+                tooltip: { callbacks: { label: (c) => c.dataset.label + ": " + peso(c.parsed.x) } }
+            }
         }
     });
 
@@ -164,11 +179,15 @@
         type: "bar",
         data: {
             labels: datos.top.etiquetas,
-            datasets: [{ label: "Unidades", data: datos.top.unidades, backgroundColor: celeste, borderRadius: 8 }]
+            datasets: [{ label: "Unidades vendidas", data: datos.top.unidades, backgroundColor: celeste, borderColor: turquesa, borderWidth: 1, borderRadius: 7 }]
         },
         options: {
             ...base,
             indexAxis: "y",
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, title: { display: true, text: "Unidades" }, grid: { color: "#edf2f2" } },
+                y: { grid: { display: false } }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: {
@@ -179,23 +198,33 @@
         }
     });
 
+    const totalCategorias = datos.categorias.vendido.reduce((suma, valor) => suma + Number(valor || 0), 0);
     crear("g-categorias", {
-        type: "bar",
+        type: "pie",
         data: {
             labels: datos.categorias.etiquetas,
-            datasets: [
-                { label: "Vendido", data: datos.categorias.vendido, backgroundColor: celeste, borderRadius: 8 },
-                { label: "Margen", data: datos.categorias.margen, backgroundColor: turquesa, borderRadius: 8 }
-            ]
+            datasets: [{
+                label: "Ventas por categoría",
+                data: datos.categorias.vendido,
+                backgroundColor: datos.categorias.etiquetas.map((_, i) => paleta[i % paleta.length]),
+                borderColor: "#ffffff",
+                borderWidth: 3,
+                hoverOffset: 8
+            }]
         },
         options: {
             ...base,
-            plugins: { tooltip: { callbacks: {
-                label: (c) => c.dataset.label + ": " + peso(c.parsed.y),
-                afterLabel: (c) => c.datasetIndex === 1
-                    ? datos.categorias.porcentaje[c.dataIndex] + "% de lo vendido"
-                    : ""
-            } } }
+            layout: { padding: 8 },
+            plugins: {
+                legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 9, padding: 14 } },
+                tooltip: { callbacks: {
+                    label: (c) => {
+                        const valor = Number(c.parsed || 0);
+                        const porcentaje = totalCategorias ? (valor / totalCategorias * 100).toFixed(1) : "0.0";
+                        return c.label + ": " + peso(valor) + " (" + porcentaje + "%)";
+                    }
+                } }
+            }
         }
     });
 })();

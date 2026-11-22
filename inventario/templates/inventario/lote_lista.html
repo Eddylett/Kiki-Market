@@ -6,16 +6,48 @@
 <div class="cabecera-pagina">
     <div>
         <h1>⏳ Lotes y vencimientos</h1>
-        <p>Semáforo preventivo: verde, amarillo y rojo según la cercanía al vencimiento.</p>
+        <p>El semáforo y los avisos se calculan automáticamente según la fecha de vencimiento y el tipo de producto.</p>
     </div>
-    {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
-        <div class="acciones">
-            <a class="btn btn-suave" href="{% url 'merma_crear' %}">Registrar merma</a>
-            
-            <a class="btn" href="{% url 'recepcion_crear' %}">+ Registrar recepción</a>
-        </div>
-    {% endif %}
+    <div class="acciones">
+        {% if user.rol == "administrador" %}
+            <a class="btn btn-suave" href="{% url 'configurar_vencimientos' %}">⚙️ Configurar alertas</a>
+        {% endif %}
+        {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
+            <a class="btn" href="{% url 'merma_crear' %}">Registrar merma</a>
+        {% endif %}
+    </div>
 </div>
+
+{% if alertas_vencimiento %}
+<section class="panel panel-alertas-vencimiento">
+    <div class="alertas-vencimiento-titulo">
+        <div>
+            <h2>Alertas automáticas</h2>
+            <p>{{ alertas_vencimiento|length }} lote(s) requieren revisión.</p>
+        </div>
+        <span class="alertas-contador">{{ alertas_vencimiento|length }}</span>
+    </div>
+    <div class="alertas-vencimiento-lista">
+        {% for l in alertas_vencimiento %}
+            <article class="alerta-vencimiento-item alerta-{{ l.semaforo_actual }}">
+                <span class="estado estado-{{ l.semaforo_actual }}">
+                    {% if l.dias_restantes < 0 %}Vencido{% elif l.semaforo_actual == "rojo" %}Urgente{% else %}Preventiva{% endif %}
+                </span>
+                <div class="alerta-vencimiento-contenido">
+                    <strong>{{ l.producto.nombre }}</strong>
+                    <p>{{ l.mensaje_alerta_actual }}</p>
+                    <small>Lote {{ l.numero_lote }} · Vence el {{ l.fecha_vencimiento|date:"d/m/Y" }} · {{ l.cantidad }} unidad(es)</small>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+<section class="panel panel-alertas-vencimiento alertas-sin-pendientes">
+    <strong>Todo en orden.</strong>
+    <p>No hay lotes activos dentro de los umbrales de alerta configurados.</p>
+</section>
+{% endif %}
 
 <div class="tabla-wrap">
     <table>
@@ -35,11 +67,11 @@
                 <td>{{ l.producto }}</td>
                 <td>{{ l.numero_lote }}</td>
                 <td>{{ l.fecha_vencimiento|date:"d/m/Y" }}</td>
-                <td class="num">{{ l.dias_para_vencer }}</td>
+                <td class="num">{% if l.dias_restantes < 0 %}{{ l.dias_restantes }}{% else %}{{ l.dias_restantes }}{% endif %}</td>
                 <td class="num">{{ l.cantidad }}</td>
                 <td>
-                    <span class="estado estado-{{ l.estado_semaforo }}">
-                        {% if l.dias_para_vencer < 0 %}Vencido{% else %}{{ l.estado_semaforo|capfirst }}{% endif %}
+                    <span class="estado estado-{{ l.semaforo_actual }}">
+                        {% if l.dias_restantes < 0 %}Vencido{% else %}{{ l.semaforo_actual|capfirst }}{% endif %}
                     </span>
                 </td>
             </tr>

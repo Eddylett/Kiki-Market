@@ -9,8 +9,16 @@
         <p>Catálogo, precios y stock de Kiki Market.</p>
     </div>
     {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
-        <a class="btn" href="{% url 'producto_crear' %}">+ Nuevo producto</a>
+        <div class="acciones">
+            <a class="btn btn-suave" href="{% url 'categoria_lista' %}">🏷️ Gestionar categorías</a>
+            <a class="btn" href="{% url 'producto_crear' %}">+ Nuevo producto</a>
+        </div>
     {% endif %}
+</div>
+
+<div class="barra-busqueda">
+    <input type="search" id="buscar-producto" placeholder="🔍 Buscar por nombre, código o categoría…" autocomplete="off" autofocus aria-label="Buscar producto">
+    <span id="cuenta-productos" class="cuenta"></span>
 </div>
 
 <div class="tabla-wrap">
@@ -22,7 +30,7 @@
                 <th>Categoría</th>
                 <th class="num">Precio final</th>
                 <th class="num">Stock total</th>
-                <th>Estado</th>
+                <th>Vencimiento</th>
                 {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
                     <th>Acciones</th>
                 {% endif %}
@@ -30,7 +38,7 @@
         </thead>
         <tbody>
         {% for p in productos %}
-            <tr>
+            <tr data-buscar="{{ p.nombre }} {{ p.codigo_barra|default:'' }} {{ p.categoria }}">
                 <td>{{ p.nombre }}</td>
                 <td>{{ p.codigo_barra|default:"—" }}</td>
                 <td>{{ p.categoria }}</td>
@@ -43,6 +51,23 @@
                         <span class="estado estado-verde">OK</span>
                     {% endif %}
                 </td>
+                <td>
+                    {% if p.estado_vencimiento_actual == "vencido" %}
+                        <span class="estado estado-rojo">Vencido</span>
+                        {% if p.dias_minimos_vencimiento is not None %}<small class="estado-detalle">{{ p.dias_minimos_vencimiento|cut:"-" }} día(s)</small>{% endif %}
+                    {% elif p.estado_vencimiento_actual == "rojo" %}
+                        <span class="estado estado-rojo">Urgente</span>
+                        {% if p.dias_minimos_vencimiento is not None %}<small class="estado-detalle">{{ p.dias_minimos_vencimiento }} día(s)</small>{% endif %}
+                    {% elif p.estado_vencimiento_actual == "amarillo" %}
+                        <span class="estado estado-amarillo">Por vencer</span>
+                        {% if p.dias_minimos_vencimiento is not None %}<small class="estado-detalle">{{ p.dias_minimos_vencimiento }} día(s)</small>{% endif %}
+                    {% elif p.estado_vencimiento_actual == "verde" %}
+                        <span class="estado estado-verde">Vigente</span>
+                        {% if p.dias_minimos_vencimiento is not None %}<small class="estado-detalle">{{ p.dias_minimos_vencimiento }} día(s)</small>{% endif %}
+                    {% else %}
+                        <span class="estado estado-neutro">Sin lote</span>
+                    {% endif %}
+                </td>
                 {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
                 <td>
                     <div class="acciones">
@@ -53,9 +78,39 @@
                 {% endif %}
             </tr>
         {% empty %}
-            <tr><td class="vacio" colspan="7">Aún no hay productos. ¡Kiki espera el primero! 🐾</td></tr>
+            <tr><td class="vacio" colspan="8">Aún no hay productos. ¡Kiki espera el primero! 🐾</td></tr>
         {% endfor %}
+            <tr id="sin-resultados" hidden><td class="vacio" colspan="8">Ningún producto coincide con la búsqueda.</td></tr>
         </tbody>
     </table>
 </div>
+
+<script>
+(function () {
+    const caja = document.getElementById("buscar-producto");
+    const filas = Array.from(document.querySelectorAll("tr[data-buscar]"));
+    const sinResultados = document.getElementById("sin-resultados");
+    const cuenta = document.getElementById("cuenta-productos");
+    const limpiar = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const textos = filas.map((f) => limpiar(f.dataset.buscar));
+
+    function filtrar() {
+        const palabras = limpiar(caja.value.trim()).split(/\s+/).filter(Boolean);
+        let visibles = 0;
+        filas.forEach((fila, i) => {
+            const coincide = palabras.every((p) => textos[i].includes(p));
+            fila.hidden = !coincide;
+            if (coincide) visibles++;
+        });
+        sinResultados.hidden = visibles !== 0 || filas.length === 0;
+        cuenta.textContent = visibles + " de " + filas.length + " productos";
+    }
+
+    caja.addEventListener("input", filtrar);
+    caja.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { caja.value = ""; filtrar(); }
+    });
+    filtrar();
+})();
+</script>
 {% endblock %}

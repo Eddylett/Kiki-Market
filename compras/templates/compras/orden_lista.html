@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Órdenes de compra{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🧾 Órdenes de compra</h1>
+        <p>Ninguna orden se envía al proveedor sin tu aprobación.</p>
+    </div>
+    <a class="btn btn-suave" href="{% url 'reposicion' %}">Ir a reposición</a>
+</div>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Orden</th>
+                <th>Proveedor</th>
+                <th>Creada</th>
+                <th>Estado</th>
+                <th class="num">Total estimado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for o in ordenes %}
+            <tr>
+                <td>#{{ o.pk }}</td>
+                <td>{{ o.proveedor }}</td>
+                <td>{{ o.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <span class="estado estado-{% if o.estado == 'pendiente' %}amarillo{% elif o.estado == 'rechazada' %}rojo{% else %}verde{% endif %}">
+                        {{ o.get_estado_display }}
+                    </span>
+                </td>
+                <td class="num">${{ o.total_estimado|floatformat:0 }}</td>
+                <td><a class="btn btn-suave btn-chico" href="{% url 'orden_detalle' o.pk %}">
+                    {% if o.estado == 'pendiente' %}Revisar{% else %}Ver{% endif %}
+                </a></td>
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="6">Aún no hay órdenes de compra.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

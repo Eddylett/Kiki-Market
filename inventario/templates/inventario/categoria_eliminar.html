@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Eliminar categoría{% endblock %}
+
+{% block contenido %}
+<div class="formulario-pagina">
+    <header class="cabecera-pagina formulario-cabecera">
+        <div>
+            <h1>🗑️ Eliminar categoría</h1>
+            <p>Confirma la acción antes de continuar.</p>
+        </div>
+    </header>
+
+    <section class="panel formulario-panel categoria-confirmacion">
+        <h2>¿Eliminar «{{ categoria.nombre }}»?</h2>
+        <p>Esta acción no se puede deshacer. Si la categoría tiene productos asociados, primero debes asignarles otra categoría.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="botones formulario-botones">
+                <button type="submit" class="btn-peligro">Sí, eliminar categoría</button>
+                <a class="btn btn-suave" href="{% url 'categoria_lista' %}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

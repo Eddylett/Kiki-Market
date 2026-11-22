@@ -1,3 +1,5 @@
+import secrets
+
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +14,43 @@ class MotivoMerma(models.TextChoices):
     CAMBIO_PROVEEDOR = "cambio_proveedor", "Cambio con el proveedor"
     CONSUMO_PROPIO = "consumo_propio", "Consumo propio"
     OTRO = "otro", "Otro"
+
+
+class ConfiguracionVencimiento(models.Model):
+    """Umbrales globales de vencimiento; se administra solo desde el perfil administrador."""
+
+    id_configuracion = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    perecible_aviso_1 = models.PositiveSmallIntegerField(default=15)
+    perecible_aviso_2 = models.PositiveSmallIntegerField(default=7)
+    perecible_aviso_3 = models.PositiveSmallIntegerField(default=3)
+    despensa_aviso = models.PositiveSmallIntegerField(default=30)
+
+    class Meta:
+        db_table = "configuracion_vencimientos"
+        verbose_name = "configuración de vencimientos"
+        verbose_name_plural = "configuración de vencimientos"
+
+    def __str__(self):
+        return "Configuración de alertas de vencimiento"
+
+    @classmethod
+    def obtener(cls):
+        """Devuelve la única configuración; crea los valores predeterminados si faltan."""
+        configuracion, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                "perecible_aviso_1": 15,
+                "perecible_aviso_2": 7,
+                "perecible_aviso_3": 3,
+                "despensa_aviso": 30,
+            },
+        )
+        return configuracion
+
+    def save(self, *args, **kwargs):
+        # La tabla representa una configuración global y solo puede tener la fila ID 1.
+        self.pk = 1
+        super().save(*args, **kwargs)
 
 
 class Categoria(models.Model):
@@ -36,7 +75,7 @@ class Producto(models.Model):
     categoria = models.ForeignKey(
         Categoria, on_delete=models.PROTECT, db_column="id_categoria", related_name="productos"
     )
-    # Único (HU-05) y opcional: los productos a granel se buscan a mano (RF-10)
+    # Se genera automáticamente un código numérico único al guardar productos nuevos.
     codigo_barra = models.CharField(max_length=50, unique=True, null=True, blank=True)
     nombre = models.CharField(max_length=120)
     precio_costo = models.DecimalField(max_digits=12, decimal_places=2)
@@ -53,8 +92,63 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
+    @staticmethod
+    def generar_codigo_barra():
+        """Genera un código interno numérico de 13 dígitos con dígito de control EAN-13."""
+        for _ in range(100):
+            # El prefijo 2 se reserva habitualmente para códigos de circulación interna.
+            base = "2" + f"{secrets.randbelow(10**11):011d}"
+            suma = sum(int(digito) * (1 if posicion % 2 == 0 else 3)
+                       for posicion, digito in enumerate(base))
+            control = (10 - (suma % 10)) % 10
+            codigo = f"{base}{control}"
+            if not Producto.objects.filter(codigo_barra=codigo).exists():
+                return codigo
+        raise RuntimeError("No fue posible generar un código de barras único.")
+
+    def save(self, *args, **kwargs):
+        codigo_generado = False
+        if not self.codigo_barra:
+            self.codigo_barra = self.generar_codigo_barra()
+            codigo_generado = True
+
+        # Asegura que el código recién asignado también se guarde cuando se usa update_fields.
+        if codigo_generado and kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | {"codigo_barra"}
+
+        super().save(*args, **kwargs)
+
     def stock_total(self):
         return self.stock_estanteria + self.stock_bodega
+
+    def estado_vencimiento(self, configuracion=None):
+        """Devuelve el estado de vencimiento más urgente de los lotes con stock."""
+        configuracion = configuracion or ConfiguracionVencimiento.obtener()
+        lotes = [lote for lote in self.lotes.all() if lote.cantidad > 0]
+        lote = min(lotes, key=lambda item: item.fecha_vencimiento) if lotes else None
+        if lote is None:
+            return "sin_lote"
+
+        dias = lote.dias_para_vencer()
+        if dias < 0:
+            return "vencido"
+        if dias <= configuracion.perecible_aviso_3:
+            return "rojo"
+
+        limite = (
+            configuracion.perecible_aviso_1
+            if self.categoria.tipo == TipoProducto.PERECIBLE
+            else configuracion.despensa_aviso
+        )
+        if dias <= limite:
+            return "amarillo"
+        return "verde"
+
+    def dias_minimos_para_vencer(self):
+        """Días restantes del lote con vencimiento más próximo que aún tiene stock."""
+        lotes = [lote for lote in self.lotes.all() if lote.cantidad > 0]
+        lote = min(lotes, key=lambda item: item.fecha_vencimiento) if lotes else None
+        return lote.dias_para_vencer() if lote else None
 
     def esta_en_stock_critico(self):
         return self.stock_total() <= self.stock_minimo
@@ -88,13 +182,43 @@ class Lote(models.Model):
     def dias_para_vencer(self):
         return (self.fecha_vencimiento - timezone.localdate()).days
 
-    def estado_semaforo(self):
+    def estado_semaforo(self, configuracion=None):
+        """Calcula el semáforo usando los umbrales globales vigentes."""
+        configuracion = configuracion or ConfiguracionVencimiento.obtener()
         dias = self.dias_para_vencer()
-        if dias <= 3:
+
+        if dias <= configuracion.perecible_aviso_3:
             return "rojo"
-        if dias <= self.producto.categoria.dias_alerta:
+
+        if self.producto.categoria.tipo == TipoProducto.PERECIBLE:
+            limite_preventivo = configuracion.perecible_aviso_1
+        else:
+            limite_preventivo = configuracion.despensa_aviso
+
+        if dias <= limite_preventivo:
             return "amarillo"
         return "verde"
+
+    def mensaje_alerta(self, configuracion=None):
+        """Devuelve el aviso que corresponde al lote, o una cadena vacía si está en verde."""
+        configuracion = configuracion or ConfiguracionVencimiento.obtener()
+        dias = self.dias_para_vencer()
+        tipo = self.producto.categoria.tipo
+
+        if dias < 0:
+            return f"Producto vencido hace {abs(dias)} día(s). Retirar y registrar la merma si corresponde."
+        if dias <= configuracion.perecible_aviso_3:
+            return f"Alerta urgente: quedan {dias} día(s) para vencer. Revisar de inmediato."
+
+        if tipo == TipoProducto.PERECIBLE:
+            if dias <= configuracion.perecible_aviso_2:
+                return f"Prioridad alta: quedan {dias} día(s) para vencer (umbral de {configuracion.perecible_aviso_2} días)."
+            if dias <= configuracion.perecible_aviso_1:
+                return f"Aviso preventivo: quedan {dias} día(s) para vencer (umbral de {configuracion.perecible_aviso_1} días)."
+        elif dias <= configuracion.despensa_aviso:
+            return f"Aviso preventivo: quedan {dias} día(s) para vencer (umbral de {configuracion.despensa_aviso} días)."
+
+        return ""
 
 
 class Merma(models.Model):

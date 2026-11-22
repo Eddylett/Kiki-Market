@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Proveedores{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🤝 Proveedores</h1>
+        <p>Contactos, días de pedido y entrega, y productos asociados.</p>
+    </div>
+    <a class="btn" href="{% url 'proveedor_crear' %}">+ Nuevo proveedor</a>
+</div>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Proveedor</th>
+                <th>RUT</th>
+                <th>Contacto</th>
+                <th>Correo</th>
+                <th>Pedido</th>
+                <th>Entrega</th>
+                <th class="num">Productos</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in proveedores %}
+            <tr>
+                <td>{{ p.razon_social }}</td>
+                <td>{{ p.rut }}</td>
+                <td>{{ p.contacto_nombre|default:"—" }}<br><small>{{ p.telefono }}</small></td>
+                <td>{{ p.correo }}</td>
+                <td>{{ p.dia_pedido|default:"—" }}</td>
+                <td>{{ p.dia_entrega|default:"—" }}</td>
+                <td class="num">{{ p.num_productos }}</td>
+                <td><a class="btn btn-suave btn-chico" href="{% url 'proveedor_editar' p.pk %}">Editar</a></td>
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="8">Aún no hay proveedores registrados.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

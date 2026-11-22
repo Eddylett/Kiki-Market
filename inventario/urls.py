@@ -3,6 +3,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("vencimientos/configuracion/", views.configurar_vencimientos, name="configurar_vencimientos"),
+    path("categorias/", views.categoria_lista, name="categoria_lista"),
+    path("categorias/nueva/", views.categoria_crear, name="categoria_crear"),
+    path("categorias/<int:pk>/editar/", views.categoria_editar, name="categoria_editar"),
+    path("categorias/<int:pk>/eliminar/", views.categoria_eliminar, name="categoria_eliminar"),
     path("productos/", views.producto_lista, name="producto_lista"),
     path("productos/nuevo/", views.producto_crear, name="producto_crear"),
     path("productos/<int:pk>/editar/", views.producto_editar, name="producto_editar"),

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Categorías{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🏷️ Categorías</h1>
+        <p>Crea y organiza las categorías que utilizas en el catálogo de productos.</p>
+    </div>
+    <div class="acciones">
+        <a class="btn btn-suave" href="{% url 'producto_lista' %}">Volver a productos</a>
+        <a class="btn" href="{% url 'categoria_crear' %}">+ Nueva categoría</a>
+    </div>
+</div>
+
+<section class="panel categoria-ayuda">
+    <strong>Las categorías son personalizables.</strong>
+    <p>Puedes crear nombres como Bebidas, Lácteos, Aseo, Congelados, Panadería o los que necesite tu negocio. El tipo de categoría determina qué umbrales automáticos se aplican.
+    {% if user.rol == "administrador" %}Puedes modificar esos plazos desde <a href="{% url 'configurar_vencimientos' %}">Configuración de alertas</a>.{% else %}Los umbrales de vencimiento son administrados exclusivamente por el administrador.{% endif %}</p>
+</section>
+
+<div class="tabla-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Categoría</th>
+                <th>Clasificación</th>
+                <th class="num">Productos asociados</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for categoria in categorias %}
+            <tr>
+                <td><strong>{{ categoria.nombre }}</strong></td>
+                <td><span class="categoria-tipo">{{ categoria.get_tipo_display }}</span></td>
+                <td class="num">{{ categoria.cantidad_productos }}</td>
+                <td>
+                    <div class="acciones">
+                        <a class="btn btn-suave btn-chico" href="{% url 'categoria_editar' categoria.pk %}">Editar</a>
+                        <a class="btn btn-peligro btn-chico" href="{% url 'categoria_eliminar' categoria.pk %}">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td class="vacio" colspan="4">Todavía no hay categorías. Crea la primera para comenzar a clasificar tus productos.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

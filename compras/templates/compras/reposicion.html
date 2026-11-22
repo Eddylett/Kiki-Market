@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · Reposición{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-pagina">
+    <div>
+        <h1>🔄 Reposición</h1>
+        <p>Productos en stock crítico. Nada se envía al proveedor hasta que apruebes la orden.</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Producto</th>
+                    <th>Proveedor</th>
+                    <th class="num">Stock</th>
+                    <th class="num">Mínimo</th>
+                    <th class="num">Sugerido</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in filas %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="producto" value="{{ f.producto.pk }}"
+                               {% if not f.producto.proveedor or f.pendiente %}disabled{% else %}checked{% endif %}>
+                    </td>
+                    <td>{{ f.producto.nombre }}</td>
+                    <td>{{ f.producto.proveedor|default:"—" }}</td>
+                    <td class="num">{{ f.producto.stock_total }}</td>
+                    <td class="num">{{ f.producto.stock_minimo }}</td>
+                    <td class="num">{{ f.sugerida }}</td>
+                    <td>
+                        {% if f.pendiente %}
+                            <span class="estado estado-amarillo">Orden pendiente</span>
+                        {% elif not f.producto.proveedor %}
+                            <span class="estado estado-rojo">Sin proveedor</span>
+                        {% else %}
+                            <span class="estado estado-verde">Listo para pedir</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td class="vacio" colspan="7">Todo en orden: no hay productos en stock crítico. 🐾</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if filas %}
+    <div class="acciones" style="margin-top:1rem;">
+        <button type="submit">Generar órdenes de compra</button>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

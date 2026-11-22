@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block titulo %}Kiki Market · {{ titulo }}{% endblock %}
+
+{% block contenido %}
+<div class="formulario-pagina">
+    <header class="cabecera-pagina formulario-cabecera">
+        <div>
+            <h1>🤝 {{ titulo }}</h1>
+            <p>Registra los datos de contacto y coordinación de entrega del proveedor.</p>
+        </div>
+    </header>
+
+    <section class="panel panel-form formulario-panel">
+        <div class="formulario-intro">
+            <span class="formulario-icono">🏢</span>
+            <div>
+                <h2>Información del proveedor</h2>
+                <p>Completa los campos para mantener tus compras organizadas.</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="campos-formulario">
+                {% for field in form %}
+                    {% if field.is_hidden %}
+                        {{ field }}
+                    {% else %}
+                        <div class="campo-formulario {% if field.errors %}campo-con-error{% endif %}">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}<small class="ayuda-campo">{{ field.help_text }}</small>{% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="botones formulario-botones">
+                <button type="submit">Guardar proveedor</button>
+                <a class="btn btn-suave" href="{% url 'proveedor_lista' %}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

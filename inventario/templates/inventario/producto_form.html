@@ -3,18 +3,60 @@
 {% block titulo %}Kiki Market · {{ titulo }}{% endblock %}
 
 {% block contenido %}
-<div class="cabecera-pagina">
-    <h1>📦 {{ titulo }}</h1>
-</div>
-
-<div class="panel panel-form">
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <div class="botones">
-            <button type="submit">Guardar</button>
-            <a class="btn btn-suave" href="{% url 'producto_lista' %}">Cancelar</a>
+<div class="formulario-pagina formulario-pagina-amplio">
+    <header class="cabecera-pagina formulario-cabecera">
+        <div>
+            <h1>📦 {{ titulo }}</h1>
+            <p>Organiza la información, los precios y el stock del producto.</p>
         </div>
-    </form>
+    </header>
+
+    <section class="panel panel-form formulario-panel">
+        <div class="formulario-intro">
+            <span class="formulario-icono">🛒</span>
+            <div>
+                <h2>Información del producto</h2>
+                <p>Revisa los datos antes de guardar para mantener el inventario actualizado.</p>
+            </div>
+            <a class="btn btn-suave btn-chico formulario-gestionar" href="{% url 'categoria_lista' %}" target="_blank" rel="noopener">🏷️ Administrar categorías</a>
+        </div>
+
+        <div class="codigo-automatico">
+            <span class="codigo-automatico-icono">▦</span>
+            <div>
+                <strong>Código de barras automático</strong>
+                {% if form.instance.pk and form.instance.codigo_barra %}
+                    <span class="codigo-automatico-numero">{{ form.instance.codigo_barra }}</span>
+                    <small>Este código se conserva al editar el producto.</small>
+                {% else %}
+                    <small>Al guardar, Kiki Market asignará un código interno único de 13 dígitos, compuesto solamente por números.</small>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="campos-formulario">
+                {% for field in form %}
+                    {% if field.is_hidden %}
+                        {{ field }}
+                    {% else %}
+                        <div class="campo-formulario {% if field.errors %}campo-con-error{% endif %}">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}<small class="ayuda-campo">{{ field.help_text }}</small>{% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="botones formulario-botones">
+                <button type="submit">Guardar producto</button>
+                <a class="btn btn-suave" href="{% url 'producto_lista' %}">Cancelar</a>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}

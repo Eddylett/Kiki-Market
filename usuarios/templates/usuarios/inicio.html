@@ -9,42 +9,146 @@
     <p>Tu minimarket de barrio, siempre ordenado. Entraste como {{ user.get_rol_display|lower }}.</p>
 </section>
 
-<section class="tarjetas">
-    <a class="tarjeta" href="{% url 'producto_lista' %}">
-        <div class="icono">📦</div>
-        <h3>Productos</h3>
-        <p>Catálogo, precios y stock.</p>
-    </a>
-    <a class="tarjeta" href="{% url 'lote_lista' %}">
-        <div class="icono">⏳</div>
-        <h3>Lotes y vencimientos</h3>
-        <p>Semáforo de fechas de vencimiento.</p>
-    </a>
-    {% if user.rol == "administrador" or user.rol == "encargado_inventario" %}
-    <a class="tarjeta" href="{% url 'recepcion_crear' %}">
-        <div class="icono">🚚</div>
-        <h3>Recepción</h3>
-        <p>Registrar mercadería que llega.</p>
-    </a>
+<h2 class="dash-titulo">Avisos del día</h2>
+<section class="avisos-grid">
+    {% if es_gestion %}
+    <div class="aviso-card {% if productos_criticos %}alerta{% else %}ok{% endif %}">
+        {% if productos_criticos %}
+            <span class="cifra">⚠️ {{ productos_criticos }}</span>
+            <p>producto{{ productos_criticos|pluralize }} con stock crítico.</p>
+            {% if es_admin %}
+                <a href="{% url 'reposicion' %}">Revisar reposición →</a>
+            {% else %}
+                <a href="{% url 'producto_lista' %}">Ver productos →</a>
+            {% endif %}
+        {% else %}
+            <span class="cifra">✅ Stock en orden</span>
+            <p>Ningún producto está bajo su stock mínimo.</p>
+        {% endif %}
+    </div>
+
+    <div class="aviso-card {% if lotes_rojos %}peligro{% elif lotes_amarillos %}alerta{% else %}ok{% endif %}">
+        {% if lotes_rojos or lotes_amarillos %}
+            <span class="cifra">⏳ {{ lotes_rojos }} en rojo · {{ lotes_amarillos }} en amarillo</span>
+            <p>
+                Lotes por vencer
+                {% if lotes_vencidos %}({{ lotes_vencidos }} ya vencido{{ lotes_vencidos|pluralize }}){% endif %}.
+            </p>
+            <a href="{% url 'lote_lista' %}">Revisar lotes →</a>
+        {% else %}
+            <span class="cifra">✅ Lotes al día</span>
+            <p>Ningún lote en riesgo de vencimiento.</p>
+        {% endif %}
+    </div>
+    {% elif mis_ventas_hoy is not None %}
+    <div class="aviso-card ok">
+        <span class="cifra">🧾 {{ mis_ventas_hoy }}</span>
+        <p>venta{{ mis_ventas_hoy|pluralize }} registrada{{ mis_ventas_hoy|pluralize }} por ti hoy.</p>
+        <a href="{% url 'pos' %}">Ir al punto de venta →</a>
+    </div>
     {% endif %}
-    {% if user.rol == "cajera" or user.rol == "administrador" %}
-    <a class="tarjeta" href="{% url 'pos' %}">
-        <div class="icono">🛒</div>
-        <h3>Punto de venta</h3>
-        <p>Cobrar y emitir comprobante.</p>
-    </a>
-    {% endif %}
-    {% if user.rol == "administrador" %}
-    <a class="tarjeta" href="/admin/">
-        <div class="icono">⚙️</div>
-        <h3>Administración</h3>
-        <p>Categorías, proveedores y datos.</p>
-    </a>
-    {% endif %}
+
+    <div class="aviso-card rincon">
+        <span class="cifra">El Rincón de Kiki 🐈‍⬛</span>
+        <p>Consejo del día: empieza revisando los lotes en rojo en "Lotes y vencimientos". ¡A Kiki no le gusta desperdiciar nada!</p>
+    </div>
 </section>
 
-<section class="rincon">
-    <h2>El Rincón de Kiki 🐈‍⬛</h2>
-    <p>Consejo del día: empieza revisando los lotes en rojo en "Lotes y vencimientos". ¡A Kiki no le gusta desperdiciar nada!</p>
+{% if es_admin %}
+<div class="cabecera-pagina dash-titulo">
+    <h2 style="margin:0;">Resumen de hoy</h2>
+    <a class="btn btn-suave btn-chico" href="{% url 'reporte_cierre' %}">Ver reportes completos</a>
+</div>
+
+<section class="kpis">
+    <div class="panel kpi">
+        <span>Ventas netas de hoy</span>
+        <strong>${{ resumen_hoy.neto|floatformat:0 }}</strong>
+        <small>{{ resumen_hoy.num_ventas }} venta{{ resumen_hoy.num_ventas|pluralize }}</small>
+    </div>
+    <div class="panel kpi">
+        <span>Ganancia real de hoy</span>
+        <strong>${{ resumen_hoy.ganancia|floatformat:0 }}</strong>
+        <small>Después de costos y devoluciones</small>
+    </div>
+    <div class="panel kpi">
+        <span>Devoluciones de hoy</span>
+        <strong>${{ resumen_hoy.devuelto|floatformat:0 }}</strong>
+        <small>Dinero devuelto a clientes</small>
+    </div>
+    <div class="panel kpi">
+        <span>Mermas de hoy</span>
+        <strong>${{ resumen_hoy.mermas|floatformat:0 }}</strong>
+        <small>Costo de productos dados de baja</small>
+    </div>
 </section>
+
+<section class="graficos-grid">
+    <div class="panel">
+        <h3>Ventas netas de los últimos 7 días</h3>
+        <div class="grafico"><canvas id="g-dias"></canvas></div>
+    </div>
+    <div class="panel">
+        <h3>Productos más vendidos hoy</h3>
+        {% if resumen_hoy.top %}
+            <div class="grafico"><canvas id="g-top"></canvas></div>
+        {% else %}
+            <p class="vacio-grafico">Aún no hay ventas hoy.</p>
+        {% endif %}
+    </div>
+</section>
+
+{{ graficos|json_script:"datos-inicio" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+    const datos = JSON.parse(document.getElementById("datos-inicio").textContent);
+    const turquesa = "#26A69A", celeste = "#80DEEA";
+    const peso = (v) => "$" + Math.round(v).toLocaleString("es-CL");
+    const base = { responsive: true, maintainAspectRatio: false };
+
+    const dias = document.getElementById("g-dias");
+    if (dias) {
+        const colores = datos.dias.neto.map((_, i) => i === datos.dias.neto.length - 1 ? turquesa : celeste);
+        new Chart(dias, {
+            type: "bar",
+            data: {
+                labels: datos.dias.etiquetas,
+                datasets: [{ label: "Ventas netas", data: datos.dias.neto, backgroundColor: colores, borderRadius: 8 }]
+            },
+            options: {
+                ...base,
+                scales: { y: { beginAtZero: true, ticks: { callback: (v) => peso(v) } } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: (c) => peso(c.parsed.y) } }
+                }
+            }
+        });
+    }
+
+    const top = document.getElementById("g-top");
+    if (top) {
+        new Chart(top, {
+            type: "bar",
+            data: {
+                labels: datos.top.etiquetas,
+                datasets: [{ label: "Unidades", data: datos.top.unidades, backgroundColor: celeste, borderRadius: 8 }]
+            },
+            options: {
+                ...base,
+                indexAxis: "y",
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: {
+                        label: (c) => c.parsed.x + " unidades",
+                        afterLabel: (c) => "Vendido: " + peso(datos.top.vendido[c.dataIndex])
+                    } }
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}
